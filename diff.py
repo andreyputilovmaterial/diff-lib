@@ -1,9 +1,29 @@
 
 
+from collections import namedtuple
 
-DiffItemKeep = namedtuple('DiffItemKeep', ['line'])
-DiffItemInsert = namedtuple('DiffItemInsert', ['line'])
-DiffItemRemove = namedtuple('DiffItemRemove', ['line'])
+# DiffItemKeep = namedtuple('DiffItemKeep', ['line'])
+# DiffItemInsert = namedtuple('DiffItemInsert', ['line'])
+# DiffItemRemove = namedtuple('DiffItemRemove', ['line'])
+
+class DiffItemKeep(namedtuple('DiffItemKeep',['line'])):
+    __slots__ = ()
+    def __str__(self):
+        return 'keep: {line}'.format(line=self.line)
+class DiffItemInsert(namedtuple('DiffItemInsert',['line'])):
+    __slots__ = ()
+    def __str__(self):
+        return 'insert: {line}'.format(line=self.line)
+class DiffItemRemove(namedtuple('DiffItemRemove',['line'])):
+    __slots__ = ()
+    def __str__(self):
+        return 'remove: {line}'.format(line=self.line)
+
+
+def unicode_remove_accents(txt):
+    raise Exception('remove accents func: not implemented; please grab some implementation suitable for your needs')
+
+
 
 
 

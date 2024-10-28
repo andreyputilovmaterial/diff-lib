@@ -31,6 +31,11 @@ def unicode_remove_accents(txt):
 # re-written to python from js by AP 11/30/2022
 # sourced 11/17/2022 from https://github.com/wickedest/myers-diff, Apache 2.0 license */ /* authors can be found there on that page */ /* license is not attached but can be found here https:/* github.com/wickedest/myers-diff/blob/master/LICENSE */
 
+# comment:
+# deliimiter can only be a single character
+# because it is designed to an array element - data is not necessarily a string
+# so we can't pass '<<ENDL>>', or r'\r\n', or r'\b', or eny regexps
+
 class MyersDiffSplitter:
     def __init__(self,data,delimiter):
         self.data = data
@@ -39,7 +44,7 @@ class MyersDiffSplitter:
         self.delimiter = delimiter
     def __iter__(self):
         self.start = 0
-        self.pos = ( 0 if not self.delimiter else ( data.index(self.delimiter, self.start) if self.delimiter in self.data[self.start:] else -1 ) )
+        self.pos = ( 0 if not self.delimiter else ( self.data.index(self.delimiter, self.start) if self.delimiter in self.data[self.start:] else -1 ) )
         return self
     def __next__(self):
         if len(self.data) == 0:
@@ -64,7 +69,7 @@ class MyersDiffSplitter:
             word = self.data[self.start:self.pos]
             part = {'text':word,'pos':self.start}
             self.start = self.pos + 1
-            self.pos = ( 0 if not self.delimiter else ( data.index(self.delimiter, self.start) if self.delimiter in self.data[self.start:] else -1 ) )
+            self.pos = ( 0 if not self.delimiter else ( self.data.index(self.delimiter, self.start) if self.delimiter in self.data[self.start:] else -1 ) )
             return part
 
 def myers_diff_get_default_settings():
@@ -81,7 +86,7 @@ class MyersDiffEncodeContext:
         self.encoder = encoder
         self._codes = {}
         self._modified = {}
-        self._parts = [];
+        self._parts = []
         count = 0
         splitter_delimiter = None
         if 'compare' in options:
@@ -94,16 +99,20 @@ class MyersDiffEncodeContext:
             elif options['compare']=='array':
                 splitter_delimiter = None
             else:
-                # default
-                # that would be chars, or array, that would work the same
+                # default is None
+                # which means that data is treated as an array (or a sequence of chars if it's a string)
                 splitter_delimiter = None
+        # comment:
+        # splitter_delimiter can only be a single character
+        # because it is designed to an element from the array - data is not necessarily a string
+        # so we can't pass '<<ENDL>>', or r'\r\n', or r'\b', or eny regexps
         split = MyersDiffSplitter(data,splitter_delimiter)
         part = None
         for part in split:
             # if options.lowercase..., options.ignoreAccents
             # line = lower(line) ...
             # part = { 'text': part_txt, 'pos': count }
-            line = str(part['text'])
+            line = '{line}'.format(line=part['text'])
             if ('ignorewhitespace' in options) and (options['ignorewhitespace']):
                 line = re.sub(r'^\s*','',re.sub(r'\s*$','',re.sub(r'\s+',' ',line)))
             if ('ignorecase' in options) and (options['ignorecase']):
@@ -397,7 +406,7 @@ class Myers:
                 lambda line: DiffItemKeep(line),
                 a[lastIndex:]
             )
-        ];
+        ]
         return results
 
 

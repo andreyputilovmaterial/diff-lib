@@ -175,10 +175,10 @@ class Myers:
                 while ((rhs_line < rhsctx.length) and ((lhs_line >= lhsctx.length) or ((str(rhs_line) in rhsctx.modified) and (rhsctx.modified[str(rhs_line)])))):
                     rhs_line = rhs_line + 1
                 if ((lhs_start < lhs_line) or (rhs_start < rhs_line)):
-                    lat = min([lhs_start, lhsctx.length-1 if lhsctx.length>0 else 0])
-                    rat = min([rhs_start, rhsctx.length-1 if rhsctx.length>0 else 0])
-                    lpart = lhsctx._parts[min([lhs_start, lhsctx.length - 1])]
-                    rpart = rhsctx._parts[min([rhs_start, rhsctx.length - 1])]
+                    lat = min([lhs_start, lhsctx.length if lhsctx.length>0 else 0])
+                    rat = min([rhs_start, rhsctx.length if rhsctx.length>0 else 0])
+                    lpart = lhsctx._parts[min([lhs_start, lhsctx.length])]
+                    rpart = rhsctx._parts[min([rhs_start, rhsctx.length])]
                     item = {
                         'lhs': {
                             'at': lat,

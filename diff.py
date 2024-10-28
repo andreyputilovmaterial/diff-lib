@@ -345,13 +345,14 @@ class Myers:
         changes = []
         compare = 1 # that means lines not chars
         def _changeItem(item):
-            # add context information
-            def _lhs_get_part(n):
-                return lhsctx._parts[n]
-            def _rhs_get_part(n):
-                return rhsctx._parts[n]
-            item['lhs']['get_part'] = _lhs_get_part
-            item['rhs']['get_part'] = _rhs_get_part
+            # # add context information
+            # # why do we need it? Storing callbacks in the data does not sound right, and it prevents results from being correctly serialized as json
+            # def _lhs_get_part(n):
+            #     return lhsctx._parts[n]
+            # def _rhs_get_part(n):
+            #     return rhsctx._parts[n]
+            # item['lhs']['get_part'] = _lhs_get_part
+            # item['rhs']['get_part'] = _rhs_get_part
             if (compare == 0):
                 # chars
                 item['lhs']['length'] = item['lhs']['del']
@@ -376,6 +377,10 @@ class Myers:
         Myers.compare_lcs(lhsctx, rhsctx, _changeItem)
         lhsctx.finish()
         rhsctx.finish()
+        # remove callbacks from data structure - storing it within data does not look good
+        # and makes json serialization impossible
+        # changes = [ {'lhs':{**record['lhs'],'get_part':None},'rhs':{**record['rhs'],'get_part':None}} for record in changes ]
+        # ah, actually, why do we need it? Is it better to stop assigning rather than assign and then set to None? Maybe we just don't need it?
         return changes
 
     # converts results formatted with lhs and rhs to a list with DiffItemKeep, DiffItemInsert, DiffItemRemove items

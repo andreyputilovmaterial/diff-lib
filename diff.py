@@ -1,23 +1,50 @@
 
 
-from collections import namedtuple
+# from collections import namedtuple
+from dataclasses import dataclass
+
 
 # DiffItemKeep = namedtuple('DiffItemKeep', ['line'])
 # DiffItemInsert = namedtuple('DiffItemInsert', ['line'])
 # DiffItemRemove = namedtuple('DiffItemRemove', ['line'])
 
-class DiffItemKeep(namedtuple('DiffItemKeep',['line'])):
-    __slots__ = ()
+
+# class DiffItemKeep(namedtuple('DiffItemKeep',['line','flag'])):
+#     __slots__ = ()
+#     flag = 'keep'
+#     def __str__(self):
+#         return '{flag}: {line}'.format(flag=self.flag,line=self.line)
+# class DiffItemInsert(namedtuple('DiffItemInsert',['line'])):
+#     __slots__ = ()
+#     flag = 'insert'
+#     def __str__(self):
+#         return 'insert: {line}'.format(flag=self.flag,line=self.line)
+# class DiffItemRemove(namedtuple('DiffItemRemove',['line'])):
+#     __slots__ = ()
+#     flag = 'remove'
+#     def __str__(self):
+#         return 'remove: {line}'.format(flag=self.flag,line=self.line)
+
+@dataclass(frozen=True)
+class DiffItemKeep:
+    line: str
+    flag = 'keep'
     def __str__(self):
-        return 'keep: {line}'.format(line=self.line)
-class DiffItemInsert(namedtuple('DiffItemInsert',['line'])):
-    __slots__ = ()
+        return '{flag}: {line}'.format(flag=self.flag,line=self.line)
+@dataclass(frozen=True)
+class DiffItemInsert:
+    line: str
+    flag = 'insert'
     def __str__(self):
-        return 'insert: {line}'.format(line=self.line)
-class DiffItemRemove(namedtuple('DiffItemRemove',['line'])):
-    __slots__ = ()
+        return 'insert: {line}'.format(flag=self.flag,line=self.line)
+@dataclass(frozen=True)
+class DiffItemRemove:
+    line: str
+    flag = 'remove'
     def __str__(self):
-        return 'remove: {line}'.format(line=self.line)
+        return 'remove: {line}'.format(flag=self.flag,line=self.line)
+
+
 
 
 def unicode_remove_accents(txt):
@@ -175,10 +202,14 @@ class Myers:
                 while ((rhs_line < rhsctx.length) and ((lhs_line >= lhsctx.length) or ((str(rhs_line) in rhsctx.modified) and (rhsctx.modified[str(rhs_line)])))):
                     rhs_line = rhs_line + 1
                 if ((lhs_start < lhs_line) or (rhs_start < rhs_line)):
+                    # lat = min([lhs_start, lhsctx.length-1 if lhsctx.length>0 else 0])
+                    # rat = min([rhs_start, rhsctx.length-1 if rhsctx.length>0 else 0])
+                    # lpart = lhsctx._parts[min([lhs_start, lhsctx.length - 1])]
+                    # rpart = rhsctx._parts[min([rhs_start, rhsctx.length - 1])]
                     lat = min([lhs_start, lhsctx.length if lhsctx.length>0 else 0])
                     rat = min([rhs_start, rhsctx.length if rhsctx.length>0 else 0])
-                    lpart = lhsctx._parts[min([lhs_start, lhsctx.length])]
-                    rpart = rhsctx._parts[min([rhs_start, rhsctx.length])]
+                    lpart = lhsctx._parts[min([lhs_start, lhsctx.length])] if min([lhs_start, lhsctx.length]) in lhsctx._parts else None
+                    rpart = rhsctx._parts[min([rhs_start, rhsctx.length])] if min([rhs_start, rhsctx.length]) in rhsctx._parts else None
                     item = {
                         'lhs': {
                             'at': lat,
@@ -329,59 +360,63 @@ class Myers:
     # * @param   {string} rhs - The right-hand source text.
     @staticmethod
     def diff(lhs, rhs, options=None):
-        encoder = MyersDiffEncoder()
-        if (not hasattr(lhs,'__len__')):
-            raise Exception('illegal argument \'lhs\'')
-        if (not hasattr(rhs,'__len__')):
-            raise Exception('illegal argument \'rhs\'')
-        if not hasattr(options,'__getitem__'):
-            options = {}
-        settings = {**myers_diff_get_default_settings(),**options}
-        lhsctx = encoder.encode(lhs,settings)
-        rhsctx = encoder.encode(rhs,settings)
-        # Myers.LCS(lhsctx, rhsctx)
-        Myers.get_longest_common_subsequence(lhsctx, 0, lhsctx.length, rhsctx, 0, rhsctx.length, [None for i in range(0,4*(len(lhs)+len(rhs))+10)], [None for i in range(0,4*(len(lhs)+len(rhs))+10)] )
-        # compare lhs/rhs codes and build a list of comparisons
-        changes = []
-        compare = 1 # that means lines not chars
-        def _changeItem(item):
-            # # add context information
-            # # why do we need it? Storing callbacks in the data does not sound right, and it prevents results from being correctly serialized as json
-            # def _lhs_get_part(n):
-            #     return lhsctx._parts[n]
-            # def _rhs_get_part(n):
-            #     return rhsctx._parts[n]
-            # item['lhs']['get_part'] = _lhs_get_part
-            # item['rhs']['get_part'] = _rhs_get_part
-            if (compare == 0):
-                # chars
-                item['lhs']['length'] = item['lhs']['del']
-                item['rhs']['length'] = item['rhs']['add']
-            else:
-                # words and lines
-                item['lhs']['length'] = 0
-                if (item['lhs']['del']):
-                    # get the index of the second-last item being deleted
-                    # plus its length, minus the start pos.
-                    i = item['lhs']['at'] + item['lhs']['del'] - 1
-                    part = lhsctx._parts[i]
-                    item['lhs']['length'] = part['pos'] + 1 - lhsctx._parts[item['lhs']['at']]['pos']
-                item['rhs']['length'] = 0
-                if (item['rhs']['add']):
-                    # get the index of the second-last item being added,
-                    # plus its length, minus the start pos.
-                    i = item['rhs']['at'] + item['rhs']['add'] - 1
-                    part = rhsctx._parts[i]
-                    item['rhs']['length'] = part['pos'] + 1 - rhsctx._parts[item['rhs']['at']]['pos']
-            changes.append(item)
-        Myers.compare_lcs(lhsctx, rhsctx, _changeItem)
-        lhsctx.finish()
-        rhsctx.finish()
-        # remove callbacks from data structure - storing it within data does not look good
-        # and makes json serialization impossible
-        # changes = [ {'lhs':{**record['lhs'],'get_part':None},'rhs':{**record['rhs'],'get_part':None}} for record in changes ]
-        # ah, actually, why do we need it? Is it better to stop assigning rather than assign and then set to None? Maybe we just don't need it?
-        return changes
+        try:
+            encoder = MyersDiffEncoder()
+            if (not hasattr(lhs,'__len__')):
+                raise Exception('illegal argument \'lhs\'')
+            if (not hasattr(rhs,'__len__')):
+                raise Exception('illegal argument \'rhs\'')
+            if not hasattr(options,'__getitem__'):
+                options = {}
+            settings = {**myers_diff_get_default_settings(),**options}
+            lhsctx = encoder.encode(lhs,settings)
+            rhsctx = encoder.encode(rhs,settings)
+            # Myers.LCS(lhsctx, rhsctx)
+            Myers.get_longest_common_subsequence(lhsctx, 0, lhsctx.length, rhsctx, 0, rhsctx.length, [None for i in range(0,4*(len(lhs)+len(rhs))+10)], [None for i in range(0,4*(len(lhs)+len(rhs))+10)] )
+            # compare lhs/rhs codes and build a list of comparisons
+            changes = []
+            compare = 1 # that means lines not chars
+            def _changeItem(item):
+                # # add context information
+                # # why do we need it? Storing callbacks in the data does not sound right, and it prevents results from being correctly serialized as json
+                # def _lhs_get_part(n):
+                #     return lhsctx._parts[n]
+                # def _rhs_get_part(n):
+                #     return rhsctx._parts[n]
+                # item['lhs']['get_part'] = _lhs_get_part
+                # item['rhs']['get_part'] = _rhs_get_part
+                if (compare == 0):
+                    # chars
+                    item['lhs']['length'] = item['lhs']['del']
+                    item['rhs']['length'] = item['rhs']['add']
+                else:
+                    # words and lines
+                    item['lhs']['length'] = 0
+                    if (item['lhs']['del']):
+                        # get the index of the second-last item being deleted
+                        # plus its length, minus the start pos.
+                        i = item['lhs']['at'] + item['lhs']['del'] - 1
+                        part = lhsctx._parts[i]
+                        item['lhs']['length'] = part['pos'] + 1 - lhsctx._parts[item['lhs']['at']]['pos']
+                    item['rhs']['length'] = 0
+                    if (item['rhs']['add']):
+                        # get the index of the second-last item being added,
+                        # plus its length, minus the start pos.
+                        i = item['rhs']['at'] + item['rhs']['add'] - 1
+                        part = rhsctx._parts[i]
+                        item['rhs']['length'] = part['pos'] + 1 - rhsctx._parts[item['rhs']['at']]['pos']
+                changes.append(item)
+            Myers.compare_lcs(lhsctx, rhsctx, _changeItem)
+            lhsctx.finish()
+            rhsctx.finish()
+            # remove callbacks from data structure - storing it within data does not look good
+            # and makes json serialization impossible
+            # changes = [ {'lhs':{**record['lhs'],'get_part':None},'rhs':{**record['rhs'],'get_part':None}} for record in changes ]
+            # ah, actually, why do we need it? Is it better to stop assigning rather than assign and then set to None? Maybe we just don't need it?
+            return changes
+        except Exception as e:
+            print('ERROR: Myers diff failed when processing "{aaa}" vs "{bbb}"'.format(aaa=lhs,bbb=rhs))
+            raise e
 
     # converts results formatted with lhs and rhs to a list with DiffItemKeep, DiffItemInsert, DiffItemRemove items
     @staticmethod

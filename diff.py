@@ -25,19 +25,19 @@ from dataclasses import dataclass
 #     def __str__(self):
 #         return 'remove: {line}'.format(flag=self.flag,line=self.line)
 
-@dataclass(frozen=True)
+@dataclass(frozen=False)
 class DiffItemKeep:
     line: str
     flag = 'keep'
     def __str__(self):
         return '{flag}: {line}'.format(flag=self.flag,line=self.line)
-@dataclass(frozen=True)
+@dataclass(frozen=False)
 class DiffItemInsert:
     line: str
     flag = 'insert'
     def __str__(self):
         return 'insert: {line}'.format(flag=self.flag,line=self.line)
-@dataclass(frozen=True)
+@dataclass(frozen=False)
 class DiffItemRemove:
     line: str
     flag = 'remove'
